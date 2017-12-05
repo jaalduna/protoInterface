@@ -1,2 +1,2 @@
 # protoInterface
-Módulo para conversar con dispositivos electrónicos directamente desde python
+Módulo para conversar con dispositivos electrónicos directamente desde Python
