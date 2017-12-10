@@ -1,39 +1,58 @@
 
-
 class gpio(object):
 	"""docstring for gpio"""
-	def __init__(self, interface, byte, position, direction, state):
-		self.interface = interface #Device interface
-		self.byte = byte #1 high byte, 0: low byte
+	def __init__(self, port, position, direction, value):
+		#self.interface = interface #Device interface
+		#self.byte = byte #1 high byte, 0: low byte
+		self.port = port
 		self.position = position # value between 0 - 7 indicating bit position
 		self.direction = direction # 1 output, 0: input
-		self.state = state # 1: on, 0: off
-		if(byte == 1):
-			self.write_opcode = 0x82
-			self.read_opcode =  0x83
+		self.value = value # 1: on, 0: off
+		#self.initialize()
+
+		self.port.set_bit_value(self.position,self.value)
+		self.port.set_bit_direction(self.position,self.direction)
+
+		#flags 
+		self.flag_rise = 0
+		self.flag_fall = 0
+
+	def set_value(self,value):
+		self.value = value
+		self.port.set_bit_value(self.position,self.value)
+
+	def toggle_value(self):
+		if(self.value == 1):
+			self.value = 0
 		else:
-			self.write_opcode = 0x80
-			self.read_opcode = 0x81
-		self.initialize()
+			self.value = 1
+		self.port.set_bit_value(self.position,self.value)
+
+	def set_direction(self,direction):
+		self.direction = direction
+		self.port.set_bit_direction(self.position,self.direction)
+
+	def get_value(self):
+		port_value = self.port.mpsse_get_data()
+		port_value = int(port_value.encode('hex'),16)
+		port_value &= 1<<self.position
+
+		self.update_flags(port_value>0)
+		return port_value > 0
+
+	def update_flags(self,port_value):
+		if(self.value == 0  and port_value == 1):
+			self.flag_rise = 1
+		elif(self.value == 1 and port_value == 0):
+			self.flag_fall == 1
+		else:
+			self.flag_rise = 0
+			self.flag_fall = 0
+
+
+
 		
 
 
 
-	def initialize(self):
-		self.set_gpio_pin(self.state, self.direction)
-
-
-	def set_value(self,value):
-		#lets check we are writting on a output pin
-		if(self.direction == 1):
-			if(value > 0):
-				self.state = 1
-			else:
-				self.state = 0
-			self.set_gpio_pin(self.state,self.direction)
-
-	def set_gpio_pin(self,value,direction):
-		bytes = [self.write_opcode, value << self.position, direction<<self.position]
-		res = "".join(map(chr, bytes))  
-		self.interface.write(res)
 		
