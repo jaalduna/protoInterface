@@ -1,5 +1,27 @@
 import time
 from protoInterface import protoInterface
+from Event import Event
+
+
+
+class ExampleOject(object):
+	def __init__(self):
+		self.button_pressed = Event('Button Pressed')
+		self.button_released = Event('Button released')
+
+
+def example_handler(*args):
+	print args[0]
+
+
+def button_on(*args):
+	#print args[0]
+	if(pi.led_user.value == 0):
+		print "turning led on"
+		pi.led_user.set_value(1)
+	else:
+		print "turning led off"
+		pi.led_user.set_value(0)
 
 
 pi = protoInterface()
@@ -9,19 +31,34 @@ pi.gpio_2.set_direction(0) # input for push button
 pi.led_user.set_direction(1) # output to indicate when the button is pressed
 
 pi.led_user.set_value(0)
-pi.gpio_1.set_value(0)
+pi.gpio_1.set_value(1)
 
-pi.interface_a.reset_uart()
+#pi.interface_a.reset_uart()
 
 pi.sel_spi_jtag.set_value(1)
 pi.sel_spi_uart.set_value(0)
 pi.interface_a.dev.baudrate = 115200
 
+current_push = 1
+previous_push = 1
+
+ev = ExampleOject()
+ev.button_pressed.add(button_on)
+#ev.button_released.add(example_handler)
+
+
+
 while(1):
-	#if(pi.gpio_2.get_value() == 0):
-	pi.led_user.toggle_value()
-	pi.interface_a.dev.write('hola mundo!')
-	time.sleep(0.5)
+	previous_push = current_push
+	current_push = pi.gpio_2.get_value() 
+	if(previous_push == 1 and current_push == 0):
+		ev.button_pressed()		
+	elif (previous_push == 0 and current_push == 1):
+		ev.button_released()
+
+	#time.sleep(0.01)
+
+
 
 
 

@@ -23,7 +23,6 @@ class port(object):
 		res = "".join(map(chr, bytes))  
 		self.dev.write(res)
 		data = self.dev.read(1)
-		print data
 		#return self.dev.read(1)
 		return data
 		#return "".join(map(chr,[self.dev.read(res)]))
