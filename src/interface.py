@@ -4,7 +4,7 @@ from port import port
 class interface(object):
 	"""docstring for interface"""
 	def __init__(self, int_select):
-		self.dev = Device(mode='b', interface_select = int_select)
+		self.dev = Device(mode='b', interface_select = int_select, auto_detach=False, device_id = 'Dual RS232-HS' )
 
 		self.write_port_l = 0x80
 		self.read_port_l = 0x81
