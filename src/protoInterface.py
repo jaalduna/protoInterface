@@ -24,6 +24,14 @@ class protoInterface(object):
 			self.gpio_1 = gpio(self.interface_a.port_l, 4, 1, 0)
 			self.gpio_2 = gpio(self.interface_a.port_l, 5, 1, 0)
 
+		self.gpio_mclr = gpio(self.interface_b.port_h, 0, 1, 1)
+		self.gpio_boot_en = gpio(self.interface_b.port_h, 1, 1, 1)
+		self.gpio_5 = gpio(self.interface_b.port_h, 2, 1, 1)
+		self.gpio_6 = gpio(self.interface_b.port_h, 3, 1, 1)
+		self.gpio_7 = gpio(self.interface_b.port_h, 4, 1, 1)
+		self.gpio_8 = gpio(self.interface_b.port_h, 5, 1, 1)
+		self.gpio_9 = gpio(self.interface_b.port_h, 6, 1, 1)
+
 		self.sel_spi_jtag = gpio(self.interface_b.port_l, 4, 1, 0)
 		self.sel_spi_uart = gpio(self.interface_b.port_l, 5, 1, 0)
 		
