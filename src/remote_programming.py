@@ -1,8 +1,11 @@
 import serial
 import crcmod
 import struct
+import time
 
-file_address = "./test.hex"
+file_address = "./test_serial.hex"
+
+modbusSlaveId = 4;
 
 def print_modbus(res):
 	print(":".join("{:02x}".format(ord(c)) for c in res))
@@ -22,7 +25,7 @@ def file_len(file):
 def get_version():
 	print "Bootloader version: ",
 	packet = bytearray()
-	packet.append(0x01) #id
+	packet.append(modbusSlaveId) #id
 	packet.append(0x04) #fcode
 	packet.append(0x00) #base address h
 	packet.append(0x03) #base address l
@@ -33,8 +36,13 @@ def get_version():
 	packet += struct.pack("<H", crc16(str(packet)))
 	#print_modbus(str(packet))
 
+
 	ser.write(packet)
 	res = ser.read(11)
+	while len(res) == 0:
+		ser.write(packet)
+		res = ser.read(11)
+
 	#print_modbus(res)
 	print_hex(res[6])
 	print ".",
@@ -44,7 +52,7 @@ def get_version():
 def reset_uc_to_bootloader():
 	print "Reset to bootloader: ",
 	packet = bytearray()
-	packet.append(0x01) #id
+	packet.append(modbusSlaveId) #id
 	packet.append(0x04) #fcode
 	packet.append(0x00) #base address h
 	packet.append(0x01) #base address l
@@ -59,10 +67,70 @@ def reset_uc_to_bootloader():
 	res = ser.read(7)
 	if(len(res) == 7):
 		print "Ok"
+
+def reset_uc_to_app():
+	print "Reset to app: ",
+	packet = bytearray()
+	packet.append(modbusSlaveId) #id
+	packet.append(0x04) #fcode
+	packet.append(0x00) #base address h
+	packet.append(0x02) #base address l
+	packet.append(0x00) #num regs h
+	packet.append(0x01) #num regs l
+
+	#crc calculation
+	packet += struct.pack("<H", crc16(str(packet)))
+	#print_modbus(str(packet))
+
+	ser.write(packet)
+	res = ser.read(7)
+	if(len(res) == 7):
+		print "Ok"
+
+
+def enable_control_pins():
+	print "enable mclr: "
+	packet = bytearray()
+	packet.append(modbusSlaveId) #id
+	packet.append(0x04) #fcode
+	packet.append(0x00) #base address h
+	packet.append(0x0a) #base address l
+	packet.append(0x00) #num regs h
+	packet.append(0x01) #num regs l
+
+	#crc calculation
+	packet += struct.pack("<H", crc16(str(packet)))
+	#print_modbus(str(packet))
+
+	ser.write(packet)
+	res = ser.read(7)
+	if(len(res) == 7):
+		print "Ok"	
+
+def disable_control_pins():
+	print "enable mclr: "
+	packet = bytearray()
+	packet.append(modbusSlaveId) #id
+	packet.append(0x04) #fcode
+	packet.append(0x00) #base address h
+	packet.append(0x09) #base address l
+	packet.append(0x00) #num regs h
+	packet.append(0x01) #num regs l
+
+	#crc calculation
+	packet += struct.pack("<H", crc16(str(packet)))
+	#print_modbus(str(packet))
+
+	ser.write(packet)
+	res = ser.read(7)
+	if(len(res) == 7):
+		print "Ok"	
+
+
 def jump_to_app():
 	print "Reset to bootloader: ",
 	packet = bytearray()
-	packet.append(0x01) #id
+	packet.append(modbusSlaveId) #id
 	packet.append(0x04) #fcode
 	packet.append(0x00) #base address h
 	packet.append(0x08) #base address l
@@ -81,7 +149,7 @@ def jump_to_app():
 def erase_flash():
 	print "Erase Flash: ",
 	packet = bytearray()
-	packet.append(0x01) #id
+	packet.append(modbusSlaveId) #id
 	packet.append(0x04) #fcode
 	packet.append(0x00) #base address h
 	packet.append(0x04) #base address l
@@ -105,7 +173,7 @@ def program_record(record):
 	l = len(record)
 	# print "programming record: ",
 	packet = bytearray()
-	packet.append(0x01)
+	packet.append(modbusSlaveId)
 	packet.append(0x10)
 	packet.append(0x00)
 	packet.append(0x05) #programming record command
@@ -161,8 +229,28 @@ def get_record(file):
 	# file.close()
 	return packet
 
+def get_value():
+	print "get value: "
+	packet = bytearray()
+	packet.append(modbusSlaveId) #id
+	packet.append(0x04) #fcode
+	packet.append(0x00) #base address h
+	packet.append(0x78) #base address l
+	packet.append(0x00) #num regs h
+	packet.append(0x01) #num regs l
+
+	#crc calculation
+	packet += struct.pack("<H", crc16(str(packet)))
+	#print_modbus(str(packet))
+	ser.flushInput()
+	ser.write(packet)
+	res = ser.read(7)
+	if(len(res) == 7):
+		print_modbus(res)
+
 if ser.isOpen():
 	#Lets ask for verison
+	enable_control_pins()
 	reset_uc_to_bootloader()
 	get_version()
 	erase_flash()
@@ -171,7 +259,7 @@ if ser.isOpen():
 	numLinesTotal = file_len(file_address)
 	numLines = 0
 	while(True):
-		print "\rrogramming: {:0.1f}%".format(numLines*1.0/numLinesTotal*100),
+		print "\rprogramming: {:0.1f}%".format(numLines*1.0/numLinesTotal*100),
 		record = get_record(file)
 
 
@@ -182,7 +270,14 @@ if ser.isOpen():
 			break
 		program_record(record)
 		numLines +=5
-	jump_to_app()
+
+	enable_control_pins()
+	reset_uc_to_app()
+	disable_control_pins()
+	get_value()
+
+	#jump_to_app()
+
 
 	ser.close()
 	file.close()
