@@ -7,7 +7,8 @@ file_address = "./test.hex"
 def print_modbus(res):
 	print(":".join("{:02x}".format(ord(c)) for c in res))
 
-ser = serial.Serial(port='COM7',baudrate=115200, timeout=1)
+#ser = serial.Serial(port='COM7',baudrate=115200, timeout=1)
+ser = serial.Serial(port='tty.usbserial-AI04OC5W',baudrate=115200, timeout=1)
 crc16 = crcmod.predefined.mkPredefinedCrcFun("modbus")
 
 def print_hex(value):
