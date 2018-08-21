@@ -1,16 +1,16 @@
 import socket
-import serial
+#import serial
 import crcmod
 import struct
 import time
 
 crc16 = crcmod.predefined.mkPredefinedCrcFun("modbus")
 
-class Programmer: 
+class Programmer:
 
 	def __init__(self, file_address):
-		self.TCP_IP = '192.168.1.62'
-		self.TCP_PORT = 5050
+		self.TCP_IP = '192.168.0.19'
+		self.TCP_PORT = 50001
 		self.BUFFER_SIZE  = 256
 		#lets configure socket
 		self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -110,7 +110,7 @@ class Programmer:
 				return False
 		except:
 			print("no answer")
-			return False 
+			return False
 		#print_modbus(res)
 	def reset_uc_to_bootloader(self):
 		print "Reset to bootloader: ",
@@ -185,11 +185,11 @@ class Programmer:
 		try:
 			data = self.s.recv(self.BUFFER_SIZE)
 			if(len(data) == 7):
-				print("Ok")	
+				print("Ok")
 				return True
 			return False
 		except:
-			print("no answer") 
+			print("no answer")
 			return False
 		# print_modbus(res)
 		try:
@@ -203,7 +203,7 @@ class Programmer:
 			# print "error"
 			pass
 	def get_record(self):
-		
+
 		packet = bytearray()
 		packet.append(0) #reserve space for num_bytes
 		num_bytes = 0
@@ -211,7 +211,7 @@ class Programmer:
 			line = self.file.readline()
 			if(len(line) == 0):
 				break
-			
+
 			num_bytes += len(line[1:-1])/2
 			packet += bytearray.fromhex(line[1:-1]);
 
@@ -226,7 +226,7 @@ class Programmer:
 		# file.close()
 		return packet
 	def program_file(self):
-		
+
 		self.enable_control_pins()
 		self.reset_uc_to_bootloader()
 		self.get_version()
@@ -259,6 +259,5 @@ class Programmer:
 
 
 
-programmer = Programmer("./test_serial.hex")
-programmer.program_file()
-
+#programmer = Programmer("./test_serial.hex")
+#programmer.program_file()

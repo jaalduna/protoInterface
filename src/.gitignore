@@ -1,2 +1,5 @@
 *.pyc
+*.swo
+*.swp
 *.dmp
+esp-link-v2.2.3/
