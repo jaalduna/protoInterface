@@ -326,14 +326,20 @@ b = Bootloader()
 b.connect()
 #b.program_file("test_hola.hex", False)
 b.close_socket()
+b.jump_to_app()
+b.connect()
+length = 24
 while(True):
-    b.jump_to_app()
-    b.connect()
     data = ""
-    time.sleep(2)
-    data += b.socket.recv(250)
-    b.close_socket()
-    print data
+    try:
+        while(len(data) < length):
+            data += (b.socket.recv(22))
+        print data,
+    except:
+        b.close_socket()
+        b.jump_to_app()
+        b.connect()
+
 
 #b = Bootloader()
 #count = 1
