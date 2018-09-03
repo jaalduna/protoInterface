@@ -26,9 +26,9 @@ class Bootloader(object):
         super(Bootloader, self).__init__()
         self.TCP_IP = '192.168.0.19'
         self.TCP_PORT = 5050
-        self.BUFFER_SIZE  = 256
+        self.BUFFER_SIZE  = 1024
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.timeout = 1
+        self.timeout = 2
         # print("Initializing tcp socket and file")
         # self.socket.connect((self.TCP_IP, self.TCP_PORT))
         self.socket.settimeout(self.timeout)
@@ -196,6 +196,7 @@ class Bootloader(object):
                     # if(verbose):
                     #     print data
                         #self.print_modbus(data)
+                     
                     if(len(data) >= length):
                         stop_time = (time.time()*1000)
                         if(connect):
@@ -206,13 +207,11 @@ class Bootloader(object):
                             print "data received ok: ",
                             self.print_modbus(data)
                         return data
-                    time.sleep(0.1)
-                    print "data len: " + str(len(data))
                 print "error!, no data received"
             except:
 
                 print "no answer...",
-                if(connect):
+                if(True):
                     self.close_socket()
                     self.connect()
 
@@ -278,12 +277,13 @@ class Bootloader(object):
     def program_file(self, file_name, connect = True):
 
         self.erase_flash(connect)
+        time.sleep(1)
 
         numLinesTotal = self.file_len(file_name)
         numLines = 0
 
         f = open(file_name, 'r')
-        mtu = 800
+        mtu = 900 
 
         while(True):
             print "\rprogramming: {:0.1f}%".format(numLines*1.0/numLinesTotal*100),
@@ -305,6 +305,7 @@ class Bootloader(object):
                 break
             self.program_flash(record,False, connect)
             numLines +=inc
+            time.sleep(1)
 
     def validate_file(self, file_name):
         numLinesTotal = self.file_len(file_name)
@@ -323,9 +324,9 @@ class Bootloader(object):
                 break
 
 b = Bootloader()
-#b.connect()
-b.program_file("test_hola.hex", True)
-#b.close_socket()
+b.connect()
+b.program_file("test_hola.hex", False)
+b.close_socket()
 #b = Bootloader()
 #count = 1
 #while(count>0):
