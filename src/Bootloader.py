@@ -193,6 +193,7 @@ class Bootloader(object):
                 while(counter >0):
                     counter -= 1
                     data += self.socket.recv(self.BUFFER_SIZE)
+                    
                     # if(verbose):
                     #     print data
                         #self.print_modbus(data)
@@ -209,8 +210,9 @@ class Bootloader(object):
                         return data
                 print "error!, no data received"
             except:
-
+                
                 print "no answer...",
+                
                 if(True):
                     self.close_socket()
                     self.connect()
@@ -305,7 +307,7 @@ class Bootloader(object):
                 break
             self.program_flash(record,False, connect)
             numLines +=inc
-            time.sleep(1)
+            time.sleep(2)
 
     def validate_file(self, file_name):
         numLinesTotal = self.file_len(file_name)
@@ -325,7 +327,7 @@ class Bootloader(object):
 
 b = Bootloader()
 b.connect()
-b.program_file("test_hola.hex", False)
+b.program_file("test_hola.hex", True)
 b.close_socket()
 #b = Bootloader()
 #count = 1
