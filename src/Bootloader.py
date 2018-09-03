@@ -324,13 +324,16 @@ class Bootloader(object):
 
 b = Bootloader()
 b.connect()
-b.program_file("test_hola.hex", True)
+#b.program_file("test_hola.hex", False)
 b.close_socket()
-b.jump_to_app()
-b.connect()
-data = b.socket.recv(22)
-b.close_socket()
-print data
+while(True):
+    b.jump_to_app()
+    b.connect()
+    data = ""
+    time.sleep(2)
+    data += b.socket.recv(250)
+    b.close_socket()
+    print data
 
 #b = Bootloader()
 #count = 1
