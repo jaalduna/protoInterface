@@ -28,9 +28,10 @@ class Bootloader(object):
         self.TCP_PORT = 5050
         self.BUFFER_SIZE  = 256
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.timeout = 1
         # print("Initializing tcp socket and file")
         # self.socket.connect((self.TCP_IP, self.TCP_PORT))
-        self.socket.settimeout(2)
+        self.socket.settimeout(self.timeout)
 
     def __del__(self):
         self.socket.close()
@@ -46,7 +47,7 @@ class Bootloader(object):
         except:
             print "error"
             time.sleep(1)
-    def tx_rx_cmd(self,cmd_name, response_len, payload = None):
+    def tx_rx_cmd(self,cmd_name, response_len, payload = None, connect = True):
         packet = bytearray()
         packet.append(SOH)
         packet.append(cmd_name)
@@ -56,8 +57,9 @@ class Bootloader(object):
         packet += struct.pack("<H", crc16(str(packet[1:len(packet)]))) # calculate CRC discarding SOH
         packet.append(EOT)
         packet = self.encode(packet)
-        response = self.receive_retry(packet,response_len,False)
+        response = self.receive_retry(packet,response_len,False, connect)
         response = self.decode(response)
+
         if(self.check_crc(response)):
             pass
             #print "crc ok"
@@ -73,17 +75,17 @@ class Bootloader(object):
 
         return response
 
-    def erase_flash(self):
-        response = self.tx_rx_cmd(ERASE_FLASH, 5)
+    def erase_flash(self,connect = True):
+        response = self.tx_rx_cmd(ERASE_FLASH, 5,None,connect)
         try:
             print "flash erased"
         except:
             print "error"
             time.sleep(1)
 #02 00 00 04 00 00 fa
-    def program_flash(self, record, verbose = False):
+    def program_flash(self, record, verbose = False, connect = True):
         record_in_bytes = bytearray.fromhex(record)
-        response = self.tx_rx_cmd(PROGRAM_FLASH,5,record_in_bytes)
+        response = self.tx_rx_cmd(PROGRAM_FLASH,5,record_in_bytes, connect)
         #self.print_modbus(str(response))
         if (len(response) == 3):
             print "program ok"
@@ -160,19 +162,23 @@ class Bootloader(object):
     def connect(self):
         while True:
             try:
-                print "connecting..."
+                print "connecting...",
+                self.socket.settimeout(self.timeout)
                 self.socket.connect((self.TCP_IP, self.TCP_PORT))
+                #self.socket.settimeout(None)
+                print "success!"
                 return
             except:
                 print "can't connect"
                 self.close_socket()
                 #return
 
-    def receive_retry(self,packet,length,verbose = False):
+    def receive_retry(self,packet,length,verbose = False,connect = True):
         start_time = 0
         stop_time = 0
-
-        self.connect()
+        print connect
+        if(connect):
+            self.connect()
         while True:
             try:
                 if(verbose):
@@ -182,7 +188,7 @@ class Bootloader(object):
                 #self.print_modbus(str(packet))
 
                 self.socket.send(packet)
-                counter = 10
+                counter = 5 
                 data = ""
                 while(counter >0):
                     counter -= 1
@@ -192,7 +198,8 @@ class Bootloader(object):
                         #self.print_modbus(data)
                     if(len(data) >= length):
                         stop_time = (time.time()*1000)
-                        self.close_socket()
+                        if(connect):
+                            self.close_socket()
                         if(verbose):
                             print "time elapsed: ",
                             print str(stop_time - start_time)
@@ -200,18 +207,22 @@ class Bootloader(object):
                             self.print_modbus(data)
                         return data
                     time.sleep(0.1)
+                    print "data len: " + str(len(data))
+                print "error!, no data received"
             except:
 
                 print "no answer...",
-                self.close_socket()
-                self.connect()
+                if(connect):
+                    self.close_socket()
+                    self.connect()
 
     def close_socket(self):
         #lets close socket
         self.socket.close()
+        time.sleep(0.1)
         #lets reasign socket so it can be opened again
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.settimeout(2)
+        self.socket.settimeout(self.timeout)
         time.sleep(0.1)
 
     def print_modbus(self,res):
@@ -264,15 +275,15 @@ class Bootloader(object):
                 pass
         return i + 1
 
-    def program_file(self, file_name):
+    def program_file(self, file_name, connect = True):
 
-        self.erase_flash()
+        self.erase_flash(connect)
 
         numLinesTotal = self.file_len(file_name)
         numLines = 0
 
         f = open(file_name, 'r')
-        mtu = 900
+        mtu = 800
 
         while(True):
             print "\rprogramming: {:0.1f}%".format(numLines*1.0/numLinesTotal*100),
@@ -292,7 +303,7 @@ class Bootloader(object):
                 print ""
                 print "program transfer complete ;)"
                 break
-            self.program_flash(record)
+            self.program_flash(record,False, connect)
             numLines +=inc
 
     def validate_file(self, file_name):
@@ -311,27 +322,39 @@ class Bootloader(object):
                 print "program transfer complete ;)"
                 break
 
-
 b = Bootloader()
-count = 1
-while(count>0):
-    count -= 1
-    print"reading version"
-    b.read_version()
-    print ""
-    print "eraseing flash"
-    b.erase_flash()
-    print ""
-    print "programming flash"
-    b.program_flash("020000040000fa")
-    b.program_flash("020000041d00dd")
-    data_record = "100010000600400f0000000000601a40c0045a7f34100020000500401300000000019d1a3c881f5a275c"
-    b.program_flash(data_record)
-    b.program_file('test_serial.hex')
-    #result = b.calculate_record_crc(data_record)
-    #b.print_modbus(str(result[2]))
-    print ""
-    print "reading crc"
-    b.read_crc(bytearray.fromhex("9d000010"),bytearray.fromhex("00000010"))
-    b.erase_flash()
-    b.jump_to_app()
+#b.connect()
+b.program_file("test_hola.hex", True)
+#b.close_socket()
+#b = Bootloader()
+#count = 1
+#while(count>0):
+#    count -= 1
+#    print"reading version"
+#    b.read_version()
+#    print ""
+#    #print "eraseing flash"
+#    #b.erase_flash()
+#    #print ""
+#    #print "programming flash"
+#    #b.program_flash("020000040000fa")
+#    #b.program_flash("020000041d00dd")
+#    #data_record = "100010000600400f0000000000601a40c0045a7f34100020000500401300000000019d1a3c881f5a275c"
+#    #b.program_flash(data_record)
+#    #b.close_socket()
+#    b.connect()
+#    b.program_file('test_hola.hex', False)
+#    b.close_socket()
+#    #result = b.calculate_record_crc(data_record)
+#    #b.print_modbus(str(result[2]))
+#    print ""
+#    print "reading crc"
+#    #b.read_crc(bytearray.fromhex("9d000010"),bytearray.fromhex("00000010"))
+#    #b.erase_flash()
+#    b.jump_to_app()
+#    
+#    b.connect()
+#    time.sleep(1) 
+#    data = b.socket.recv(22)
+#    b.close_socket()
+#    print data
